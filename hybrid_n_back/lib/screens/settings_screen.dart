@@ -9,7 +9,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final BluetoothService _bluetoothService = BluetoothService();
+  final BluetoothGameService _bluetoothService = BluetoothGameService();
   bool _tactileModeEnabled = false;
   bool _isScanning = false;
   bool _isConnected = false;
@@ -20,12 +20,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   double _stimulusDuration = 3.0; // in seconds
   bool _soundFeedbackEnabled = true;
   
-  // Mock list of BLE devices
-  final List<Map<String, dynamic>> _devices = [
-    {'name': 'Hybrid Button V1', 'id': '00:11:22:33:44:55'},
-    {'name': 'BLE Controller', 'id': 'AA:BB:CC:DD:EE:FF'},
-    {'name': 'CogniFlex Device', 'id': '12:34:56:78:90:AB'},
-  ];
+  // In a real app, this would be populated from BLE scanning
+  final List<Map<String, dynamic>> _devices = [];
 
   @override
   void initState() {
@@ -47,20 +43,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  void _startScan() {
-    // In a real app, this would trigger BLE scanning
+  void _checkPairedDevices() async {
     setState(() {
       _isScanning = true;
+      _devices.clear();
     });
     
-    // Use the BluetoothService to scan for devices
-    _bluetoothService.startScan().then((_) {
+    try {
+      // Check for already paired ESP32 devices
+      await _bluetoothService.startListening();
+      
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+          _isConnected = _bluetoothService.isConnected;
+          if (_isConnected) {
+            _connectedDeviceName = _bluetoothService.deviceName;
+          }
+        });
+        
+        if (!_bluetoothService.isConnected) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No paired ESP32 found. Please pair in Android Bluetooth settings first.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
       if (mounted) {
         setState(() {
           _isScanning = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error checking paired devices: $e')),
+        );
       }
-    });
+    }
   }
   
   void _connectToDevice(Map<String, dynamic> device) {
@@ -274,7 +294,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                     ElevatedButton.icon(
-                      onPressed: _isScanning ? null : _startScan,
+                      onPressed: _isScanning ? null : _checkPairedDevices,
                       icon: _isScanning 
                           ? const SizedBox(
                               width: 20,
@@ -294,29 +314,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
               
               // BLE device list
               Expanded(
-                child: ListView.builder(
-                  itemCount: _devices.length,
-                  itemBuilder: (context, index) {
-                    final device = _devices[index];
-                    final bool isCurrentDevice = _isConnected && _connectedDeviceName == device['name'];
-                    
-                    return ListTile(
-                      title: Text(device['name']),
-                      subtitle: Text(device['id']),
-                      trailing: isCurrentDevice
-                          ? IconButton(
-                              icon: const Icon(
-                                Icons.bluetooth_connected,
-                                color: Colors.green,
+                child: _devices.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.bluetooth_searching,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'No devices found',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
                               ),
-                              onPressed: _disconnectDevice,
-                            )
-                          : const Icon(Icons.bluetooth),
-                      onTap: () => _connectToDevice(device),
-                      selected: isCurrentDevice,
-                    );
-                  },
-                ),
+                            ),
+                            Text(
+                              'Make sure your device is in pairing mode',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _devices.length,
+                        itemBuilder: (context, index) {
+                          final device = _devices[index];
+                          final bool isCurrentDevice = _isConnected && _connectedDeviceName == device['name'];
+                          
+                          return ListTile(
+                            title: Text(device['name']),
+                            subtitle: Text(device['id']),
+                            trailing: isCurrentDevice
+                                ? IconButton(
+                                    icon: const Icon(
+                                      Icons.bluetooth_connected,
+                                      color: Colors.green,
+                                    ),
+                                    onPressed: _disconnectDevice,
+                                  )
+                                : const Icon(Icons.bluetooth),
+                            onTap: () => _connectToDevice(device),
+                            selected: isCurrentDevice,
+                          );
+                        },
+                      ),
               ),
               
               // Connection status

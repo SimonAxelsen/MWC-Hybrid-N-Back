@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hybrid_n_back/screens/history_screen.dart';
 import 'package:hybrid_n_back/screens/session_screen.dart';
 import 'package:hybrid_n_back/screens/settings_screen.dart';
-import 'package:hybrid_n_back/services/bluetooth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,8 +11,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final BluetoothService _bluetoothService = BluetoothService();
-  bool _isConnected = false;
   bool _tactileModeEnabled = false;
   int _startingNLevel = 1;
   double _stimulusDuration = 3.0;
@@ -22,13 +19,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Listen for Bluetooth connection status changes
-    _bluetoothService.connectionStatusStream.listen((connected) {
-      setState(() {
-        _isConnected = connected;
-      });
-    });
-    
     // Load settings (in a real app, this would come from SharedPreferences)
     // For now, we're just using default values
     _loadSettings();
@@ -49,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CogniFlex / Hybrid N-Back'),
+        title: const Text('Hybrid N-Back'),
         centerTitle: true,
       ),
       body: Padding(
@@ -210,25 +200,34 @@ class _HomeScreenState extends State<HomeScreen> {
             
             const SizedBox(height: 20),
             
-            // BLE Connection Status
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  _isConnected ? Icons.bluetooth_connected : Icons.bluetooth_disabled,
-                  color: _isConnected ? Colors.green : Colors.grey,
+            // Tactile Mode Info (only show when enabled)
+            if (_tactileModeEnabled)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  _isConnected
-                      ? 'Bluetooth: Connected to ${_bluetoothService.deviceName}'
-                      : 'Bluetooth: Disconnected',
-                  style: TextStyle(
-                    color: _isConnected ? Colors.green : Colors.grey,
-                  ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Tactile Mode: Pair ESP32 in Android Bluetooth settings first',
+                        style: TextStyle(
+                          color: Colors.blue[300],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
           ],
         ),
       ),

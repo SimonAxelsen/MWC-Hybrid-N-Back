@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hybrid_n_back/game/n_back_game.dart';
 import 'package:hybrid_n_back/screens/summary_screen.dart';
 import 'package:hybrid_n_back/services/tts_service.dart';
+import 'package:hybrid_n_back/services/bluetooth_service.dart';
 
 class SessionScreen extends StatefulWidget {
   final bool isTactileMode;
@@ -25,9 +26,11 @@ class SessionScreen extends StatefulWidget {
 class _SessionScreenState extends State<SessionScreen> {
   final NBackGame _game = NBackGame();
   final TTSService _ttsService = TTSService();
+  final BluetoothGameService _bluetoothService = BluetoothGameService();
   int _score = 0;
   int _nLevel = 1;
   String _currentLetter = '';
+  StreamSubscription<ButtonType>? _buttonSubscription;
   int _currentPosition = -1;
   
   // Feedback indicators
@@ -43,6 +46,12 @@ class _SessionScreenState extends State<SessionScreen> {
     super.initState();
     _initializeTTS();
     _setupGameListeners();
+    
+    // Only setup Bluetooth listeners if tactile mode is enabled
+    if (widget.isTactileMode) {
+      _setupBluetoothListeners();
+    }
+    
     _startGame();
   }
   
@@ -52,6 +61,7 @@ class _SessionScreenState extends State<SessionScreen> {
   
   @override
   void dispose() {
+    _buttonSubscription?.cancel();
     _ttsService.stop();
     _game.dispose();
     super.dispose();
@@ -88,6 +98,27 @@ class _SessionScreenState extends State<SessionScreen> {
           builder: (context) => SummaryScreen(session: session),
         ),
       );
+    });
+  }
+
+  void _setupBluetoothListeners() async {
+    // Start listening for paired ESP32
+    await _bluetoothService.startListening();
+    
+    // Listen for Bluetooth button presses
+    _buttonSubscription = _bluetoothService.buttonPressStream.listen((buttonType) {
+      if (_hasRespondedToCurrentStimulus) {
+        return; // Ignore if already responded to current stimulus
+      }
+      
+      switch (buttonType) {
+        case ButtonType.vision:
+          _onPositionResponse();
+          break;
+        case ButtonType.audio:
+          _onLetterResponse();
+          break;
+      }
     });
   }
 

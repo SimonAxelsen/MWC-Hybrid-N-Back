@@ -5,8 +5,7 @@ class AppTheme {
     brightness: Brightness.dark,
     colorScheme: const ColorScheme.dark(
       primary: Color(0xFF3498DB), // Bright blue as primary color
-      secondary: Color(0xFF2ECC71), // Green as secondary color
-      background: Color(0xFF121212), // Dark background
+      secondary: Color(0xFF2ECC71), // Dark background
       surface: Color(0xFF1E1E1E), // Slightly lighter surface
       error: Color(0xFFE74C3C), // Red for errors
     ),

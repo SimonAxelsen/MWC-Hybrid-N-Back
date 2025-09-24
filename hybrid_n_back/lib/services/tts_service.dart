@@ -12,16 +12,13 @@ class TTSService {
     if (_isInitialized) return;
 
     try {
-      // Configure TTS settings
       await _flutterTts.setLanguage("en-US");
-      await _flutterTts.setSpeechRate(0.8); // Slightly slower for clarity
+      await _flutterTts.setSpeechRate(0.8);
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
       
-      // Set voice (optional - will use system default if not available)
       var voices = await _flutterTts.getVoices;
       if (voices.isNotEmpty) {
-        // Try to find a clear English voice
         var englishVoices = voices.where((voice) => 
           voice["locale"].toString().startsWith("en")).toList();
         if (englishVoices.isNotEmpty) {
@@ -41,10 +38,7 @@ class TTSService {
     }
 
     try {
-      // Stop any ongoing speech
       await _flutterTts.stop();
-      
-      // Speak the letter
       await _flutterTts.speak(letter);
     } catch (e) {
       print('Failed to speak letter: $e');

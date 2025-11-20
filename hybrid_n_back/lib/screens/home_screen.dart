@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hybrid_n_back/screens/history_screen.dart';
 import 'package:hybrid_n_back/screens/session_screen.dart';
 import 'package:hybrid_n_back/screens/settings_screen.dart';
 
@@ -26,9 +25,9 @@ class _HomeScreenState extends State<HomeScreen> {
   
   void _loadSettings() {
     // In a real app, this would load from SharedPreferences
-    // For now, we're using hardcoded values
+    // For now, we're using hardcoded values for other settings
     setState(() {
-      _tactileModeEnabled = false;
+      // _tactileModeEnabled is managed by settings screen return value
       _startingNLevel = 1;
       _stimulusDuration = 3.0;
       _soundFeedbackEnabled = true;
@@ -74,24 +73,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             
             const SizedBox(height: 24),
-            
-            // View History & Progress Button
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => HistoryScreen(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueGrey[700],
-              ),
-              child: const Text('View History & Progress'),
-            ),
-            
-            const SizedBox(height: 16),
             
             // Settings Button
             ElevatedButton(

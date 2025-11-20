@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.hybrid_n_back"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // ndkVersion = flutter.ndkVersion  // Removed - not needed for this app
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

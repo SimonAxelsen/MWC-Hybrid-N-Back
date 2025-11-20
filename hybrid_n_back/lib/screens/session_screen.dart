@@ -31,6 +31,7 @@ class _SessionScreenState extends State<SessionScreen> {
   int _nLevel = 1;
   String _currentLetter = '';
   StreamSubscription<ButtonType>? _buttonSubscription;
+  StreamSubscription<String>? _debugSubscription;
   int _currentPosition = -1;
   
   // Feedback indicators
@@ -40,6 +41,9 @@ class _SessionScreenState extends State<SessionScreen> {
   
   // Response tracking - prevent multiple responses per stimulus
   bool _hasRespondedToCurrentStimulus = false;
+  
+  // Debug message for UI display
+  String _debugMessage = 'Debug: Waiting for BLE...';
 
   @override
   void initState() {
@@ -62,8 +66,12 @@ class _SessionScreenState extends State<SessionScreen> {
   @override
   void dispose() {
     _buttonSubscription?.cancel();
+    _debugSubscription?.cancel();
     _ttsService.stop();
     _game.dispose();
+    if (widget.isTactileMode) {
+      _bluetoothService.disconnect();
+    }
     super.dispose();
   }
 
@@ -102,11 +110,29 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   void _setupBluetoothListeners() async {
-    // Start listening for paired ESP32
-    await _bluetoothService.startListening();
+    // Connect to paired ESP32
+    setState(() {
+      _debugMessage = 'Debug: Connecting to ESP32...';
+    });
+    
+    await _bluetoothService.connect();
+    
+    // Listen for debug messages first
+    _debugSubscription = _bluetoothService.debugStream.listen((message) {
+      if (mounted) {
+        setState(() {
+          _debugMessage = message;
+        });
+      }
+    });
     
     // Listen for Bluetooth button presses
     _buttonSubscription = _bluetoothService.buttonPressStream.listen((buttonType) {
+      if (mounted) {
+        setState(() {
+          _debugMessage = 'Debug: Button pressed - $buttonType';
+        });
+      }
       if (_hasRespondedToCurrentStimulus) {
         return; // Ignore if already responded to current stimulus
       }
@@ -198,7 +224,31 @@ class _SessionScreenState extends State<SessionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        // Show confirmation dialog before leaving the game
+        return await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Stop Session?'),
+            content: const Text('Are you sure you want to stop the current session?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  _game.stopGame();
+                  Navigator.of(context).pop(true);
+                },
+                child: const Text('Stop'),
+              ),
+            ],
+          ),
+        ) ?? false;
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -206,6 +256,16 @@ class _SessionScreenState extends State<SessionScreen> {
             Text('N-Level: $_nLevel'),
             Text('Score: $_score'),
           ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(30.0),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              _debugMessage,
+              style: TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
         ),
         automaticallyImplyLeading: false, // Remove back button
       ),
@@ -329,6 +389,7 @@ class _SessionScreenState extends State<SessionScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

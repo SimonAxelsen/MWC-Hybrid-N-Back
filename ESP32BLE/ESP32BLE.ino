@@ -1,14 +1,3 @@
-# ESP32 Bluetooth Setup Guide for Hybrid N-Back Game
-
-
-## Wiring Diagram
-```
-ESP32 Pin 2  ----[Button 1]---- GND  (Vision Button)
-ESP32 Pin 4  ----[Button 2]---- GND  (Audio Button)
-```
-
-## Arduino Code (ESP32_NBack_Buttons.ino) 
-```cpp
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
@@ -104,4 +93,3 @@ void loop() {
     
     delay(50);
 }
-```
